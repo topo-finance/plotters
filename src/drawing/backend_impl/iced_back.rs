@@ -117,7 +117,9 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             let pixel = Path::rectangle(Point::new(point.0 as f32, point.1 as f32), Size::new(1.0, 1.0));
             frame.fill(&pixel, color_main(style.clone()))
         });
@@ -136,7 +138,9 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             let line = Path::line(coord_to_point(from), coord_to_point(to));
             frame.stroke(
                 &line,
@@ -162,7 +166,9 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             let width = bottom_right.0 - upper_left.0;
             let height = bottom_right.1 - upper_left.1;
             let size = Size::new(width as f32, height as f32);
@@ -200,7 +206,9 @@ impl DrawingBackend for IcedCanvasBackend
             }
         });
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             frame.stroke(&finished_path, Stroke {
                 width: style.stroke_width() as f32,
                 color: color_convert(style),
@@ -231,7 +239,9 @@ impl DrawingBackend for IcedCanvasBackend
             pat.close()
         });
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             frame.fill(&finished_path, color_convert(style));
         });
         self.geom.push(a);
@@ -251,7 +261,9 @@ impl DrawingBackend for IcedCanvasBackend
         }
 
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             let circ = Path::circle(
                 coord_to_point(center),
                 radius as f32
@@ -327,7 +339,9 @@ impl DrawingBackend for IcedCanvasBackend
         t.size = font.get_size() as f32;
 
         let size = self.get_size();
-        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let f = Size::new(size.0 as f32, size.1 as f32);
+        println!("size {:?}", f);
+        let a = self.canvas.draw(f, |frame| {
             frame.fill_text(t.clone());
         });
         self.geom.push(a);
