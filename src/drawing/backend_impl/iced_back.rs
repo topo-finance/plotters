@@ -2,7 +2,8 @@ use crate::drawing::backend::{BackendCoord, BackendStyle, DrawingBackend, Drawin
 use crate::style::text_anchor::{HPos, VPos};
 use crate::style::{Color, FontTransform, RGBAColor, TextStyle};
 
-use iced::canvas::{self, Canvas, Frame, Path, Stroke, Text, Program};
+use std::rc::Rc;
+use iced::canvas::{self, Canvas, Frame, Path, Stroke, Text, Program, Cache, State};
 use iced::{Point, Size, VerticalAlignment, HorizontalAlignment};
 use iced_native::{layout, Widget, Clipboard};
 use iced_wgpu::Renderer;
@@ -91,15 +92,14 @@ impl DrawingBackend for IcedCanvasBackend
     fn get_size(&self) -> (u32, u32) {
         // Getting just canvas.width gives poor results on HighDPI screens.
         // IcedCanvasBackend::get_canvas_size(&self.canvas)
-        let state = format!("{:?}", self.canvas);
-        // match self.canvas.state {
-        //     State::Empty => (0, 0),
-        //     State::Filled { primitive, bounds } =>  {
-        //         (bounds.width as u32, bounds.height as u32)
-        //     }
-        // }
-        println!("{:?}", state);
-        (0,0)
+        // let state = json!{format!("{:?}", self.canvas)};
+        match &*Rc::try_unwrap(Rc::clone(&self.canvas.state)).unwrap_err().borrow() {
+            State::Empty => (0, 0),
+            State::Filled { primitive, bounds } =>  {
+                (bounds.width as u32, bounds.height as u32)
+            }
+        }
+        // (0,0)
     }
 
     fn ensure_prepared(&mut self) -> Result<(), DrawingErrorKind<IcedCanvasError>> {
