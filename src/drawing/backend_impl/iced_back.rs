@@ -121,7 +121,9 @@ impl DrawingBackend for IcedCanvasBackend
         println!("size {:?}", f);
         let a = self.canvas.draw(f, |frame| {
             let pixel = Path::rectangle(Point::new(point.0 as f32, point.1 as f32), Size::new(1.0, 1.0));
-            frame.fill(&pixel, color_main(style.clone()))
+            frame.with_save(|frame| {
+                frame.fill(&pixel, color_main(style.clone()));
+            })
         });
         self.geom.push(a);
         println!("{:?}", self.geom);
@@ -142,13 +144,15 @@ impl DrawingBackend for IcedCanvasBackend
         println!("size {:?}", f);
         let a = self.canvas.draw(f, |frame| {
             let line = Path::line(coord_to_point(from), coord_to_point(to));
-            frame.stroke(
-                &line,
-                Stroke {
-                    width: style.stroke_width() as f32,
-                    color: color_convert(style),
-                    ..Stroke::default()
-                })
+            frame.with_save(|frame| {
+                frame.stroke(
+                    &line,
+                    Stroke {
+                        width: style.stroke_width() as f32,
+                        color: color_convert(style),
+                        ..Stroke::default()
+                });
+            })
         });
         self.geom.push(a);
         println!("{:?}", self.geom);
@@ -174,13 +178,17 @@ impl DrawingBackend for IcedCanvasBackend
             let size = Size::new(width as f32, height as f32);
             let rect = Path::rectangle(coord_to_point(upper_left), size);
             if fill {
-                frame.fill(&rect, color_convert(style));
+                frame.with_save(|frame| {
+                    frame.fill(&rect, color_convert(style));
+                })
             } else {
-                frame.stroke(&rect, Stroke {
-                    width: style.stroke_width() as f32,
-                    color: color_convert(style),
-                    ..Stroke::default()
-                });
+                frame.with_save(|frame| {
+                    frame.stroke(&rect, Stroke {
+                        width: style.stroke_width() as f32,
+                        color: color_convert(style),
+                        ..Stroke::default()
+                    });
+                })
             }
         });
         self.geom.push(a);
@@ -209,11 +217,13 @@ impl DrawingBackend for IcedCanvasBackend
         let f = Size::new(size.0 as f32, size.1 as f32);
         println!("size {:?}", f);
         let a = self.canvas.draw(f, |frame| {
-            frame.stroke(&finished_path, Stroke {
-                width: style.stroke_width() as f32,
-                color: color_convert(style),
-                ..Stroke::default()
-            });
+            frame.with_save(|frame| {
+                frame.stroke(&finished_path, Stroke {
+                    width: style.stroke_width() as f32,
+                    color: color_convert(style),
+                    ..Stroke::default()
+                });
+            })
         });
         self.geom.push(a);
         println!("{:?}", self.geom);
@@ -242,7 +252,9 @@ impl DrawingBackend for IcedCanvasBackend
         let f = Size::new(size.0 as f32, size.1 as f32);
         println!("size {:?}", f);
         let a = self.canvas.draw(f, |frame| {
-            frame.fill(&finished_path, color_convert(style));
+            frame.with_save(|frame| {
+                frame.fill(&finished_path, color_convert(style));
+            })
         });
         self.geom.push(a);
         println!("{:?}", self.geom);
@@ -269,13 +281,17 @@ impl DrawingBackend for IcedCanvasBackend
                 radius as f32
             );
             if fill {
-                frame.fill(&circ, color_convert(style));
+                frame.with_save(|frame| {
+                    frame.fill(&circ, color_convert(style));
+                })
             } else {
-                frame.stroke(&circ, Stroke {
-                    width: style.stroke_width() as f32,
-                    color: color_convert(style),
-                    ..Stroke::default()
-                });
+                frame.with_save(|frame| {
+                    frame.stroke(&circ, Stroke {
+                        width: style.stroke_width() as f32,
+                        color: color_convert(style),
+                        ..Stroke::default()
+                    });
+                })
             }
         });
         self.geom.push(a);
@@ -342,7 +358,9 @@ impl DrawingBackend for IcedCanvasBackend
         let f = Size::new(size.0 as f32, size.1 as f32);
         println!("size {:?}", f);
         let a = self.canvas.draw(f, |frame| {
-            frame.fill_text(t.clone());
+            frame.with_save(|frame| {
+                frame.fill_text(t.clone());
+            })
         });
         self.geom.push(a);
         println!("{:?}", self.geom);
