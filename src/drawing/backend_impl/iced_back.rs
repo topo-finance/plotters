@@ -125,6 +125,7 @@ impl DrawingBackend for IcedCanvasBackend
             frame.fill(&pixel, color_main(style.clone()))
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 
@@ -149,6 +150,7 @@ impl DrawingBackend for IcedCanvasBackend
                 })
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 
@@ -179,6 +181,7 @@ impl DrawingBackend for IcedCanvasBackend
             }
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 
@@ -208,6 +211,7 @@ impl DrawingBackend for IcedCanvasBackend
             });
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 
@@ -234,6 +238,7 @@ impl DrawingBackend for IcedCanvasBackend
             frame.fill(&finished_path, color_convert(style));
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 
@@ -265,6 +270,7 @@ impl DrawingBackend for IcedCanvasBackend
             }
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 
@@ -328,6 +334,7 @@ impl DrawingBackend for IcedCanvasBackend
             frame.fill_text(t.clone());
         });
         self.geom.push(a);
+        println!("{:?}", self.geom);
         Ok(())
     }
 }
