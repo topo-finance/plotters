@@ -4,7 +4,7 @@ use crate::style::{Color, FontTransform, RGBAColor, TextStyle};
 
 use std::rc::Rc;
 use iced::canvas::{self, Canvas, Frame, Path, Stroke, Text, Program, Cache, State};
-use iced::{Point, Size, VerticalAlignment, HorizontalAlignment};
+use iced::{Point, Rectangle, Size, VerticalAlignment, HorizontalAlignment};
 use iced_native::{layout, Widget, Clipboard};
 use iced_wgpu::Renderer;
 use iced_core::Length;
@@ -15,7 +15,8 @@ use std::marker::PhantomData;
 #[derive(Debug, Default, Clone)]
 pub struct IcedCanvasBackend {
     pub canvas: canvas::Cache,
-    pub geom: Vec<canvas::Geometry>
+    pub geom: Vec<canvas::Geometry>,
+    pub bounds: Rectangle
 }
 
 // impl<Message, P: Program<Message>> IcedCanvasBackend<Message, P> {
@@ -52,7 +53,7 @@ impl std::error::Error for IcedCanvasError {}
 
 impl IcedCanvasBackend {
     fn init_backend(canvas: canvas::Cache) -> Option<Self> {
-        Some(IcedCanvasBackend { canvas, geom: Vec::new()})
+        Some(IcedCanvasBackend { canvas, geom: Vec::new(), bounds: Rectangle::with_size(Size::new(100.0, 100.0))})
     }
 
     /// Create a new drawing backend backed with an HTML5 canvas object with given Id
@@ -94,12 +95,7 @@ impl DrawingBackend for IcedCanvasBackend
         // Getting just canvas.width gives poor results on HighDPI screens.
         // IcedCanvasBackend::get_canvas_size(&self.canvas)
         // let state = json!{format!("{:?}", self.canvas)};
-        match &*Rc::try_unwrap(Rc::clone(&self.canvas.state)).unwrap_err().borrow() {
-            State::Empty => (0, 0),
-            State::Filled { primitive, bounds } =>  {
-                (bounds.width as u32, bounds.height as u32)
-            }
-        }
+        (self.bounds.width as u32, self.bounds.height as u32)
         // (0,0)
     }
 
