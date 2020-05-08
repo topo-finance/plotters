@@ -11,10 +11,8 @@ use iced_core::Length;
 use std::marker::PhantomData;
 /// The backend that is drawing on the HTML canvas
 /// TODO: Support double buffering
-pub struct IcedCanvasBackend<Message, W: Widget<Message, Renderer>> {
-    pub canvas: W,
-    pub cache: canvas::Cache,
-    pub phantom: PhantomData<Message>
+pub struct IcedCanvasBackend {
+    pub canvas: canvas::Cache
 }
 
 // impl<Message, P: Program<Message>> IcedCanvasBackend<Message, P> {
@@ -49,23 +47,23 @@ impl std::fmt::Debug for IcedCanvasError {
 
 impl std::error::Error for IcedCanvasError {}
 
-impl<Message, W: Widget<Message, Renderer>> IcedCanvasBackend<Message, W> {
-    fn init_backend(canvas: W, cache: canvas::Cache) -> Option<Self> {
-        Some(IcedCanvasBackend { canvas, cache, phantom: PhantomData })
+impl IcedCanvasBackend {
+    fn init_backend(canvas: canvas::Cache) -> Option<Self> {
+        Some(IcedCanvasBackend { canvas })
     }
 
     /// Create a new drawing backend backed with an HTML5 canvas object with given Id
     /// - `elem_id` The element id for the canvas
     /// - Return either some drawing backend has been created, or none in error case
-    pub fn new(canvas: W, cache: canvas::Cache) -> Option<Self> {;
-        Self::init_backend(canvas, cache)
+    pub fn new(canvas: canvas::Cache) -> Option<Self> {;
+        Self::init_backend(canvas)
     }
 
     /// Create a new drawing backend backend with a HTML5 canvas object passed in
     /// - `canvas` The object we want to use as backend
     /// - Return either the drawing backend or None for error
-    pub fn with_canvas_object(canvas: W, cache: canvas::Cache) -> Option<Self> {
-        Self::init_backend(canvas, cache)
+    pub fn with_canvas_object(canvas: canvas::Cache) -> Option<Self> {
+        Self::init_backend(canvas)
     }
 }
 
@@ -85,26 +83,22 @@ fn color_main(b: RGBAColor) -> iced::Color {
 
 
 
-impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend<Message, W>
+impl DrawingBackend for IcedCanvasBackend
 {
     type ErrorType = IcedCanvasError;
 
     fn get_size(&self) -> (u32, u32) {
         // Getting just canvas.width gives poor results on HighDPI screens.
         // IcedCanvasBackend::get_canvas_size(&self.canvas)
-        let w = match self.canvas.width() {
-            Length::Fill => {panic!("can only handle fixed unit canvas sizes")},
-            Length::FillPortion(a) => {panic!("can only handle fixed unit canvas sizes")},
-            Length::Shrink => {panic!("can only handle fixed unit canvas sizes")},
-            Length::Units(a) => a,
-        };
-        let h = match self.canvas.width() {
-            Length::Fill => {panic!("can only handle fixed unit canvas sizes")},
-            Length::FillPortion(a) => {panic!("can only handle fixed unit canvas sizes")},
-            Length::Shrink => {panic!("can only handle fixed unit canvas sizes")},
-            Length::Units(a) => a,
-        };
-        (w as u32, h as u32)
+        let state = format!("{:?}", self.canvas);
+        // match self.canvas.state {
+        //     State::Empty => (0, 0),
+        //     State::Filled { primitive, bounds } =>  {
+        //         (bounds.width as u32, bounds.height as u32)
+        //     }
+        // }
+        println!("{:?}", state);
+        (0,0)
     }
 
     fn ensure_prepared(&mut self) -> Result<(), DrawingErrorKind<IcedCanvasError>> {
@@ -124,7 +118,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let pixel = Path::rectangle(Point::new(point.0 as f32, point.1 as f32), Size::new(1.0, 1.0));
             frame.fill(&pixel, color_main(style.clone()))
         });
@@ -141,7 +135,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let line = Path::line(coord_to_point(from), coord_to_point(to));
             frame.stroke(
                 &line,
@@ -165,7 +159,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let width = bottom_right.0 - upper_left.0;
             let height = bottom_right.1 - upper_left.1;
             let size = Size::new(width as f32, height as f32);
@@ -201,7 +195,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
             }
         });
         let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.stroke(&finished_path, Stroke {
                 width: style.stroke_width() as f32,
                 color: color_convert(style),
@@ -230,7 +224,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
             pat.close()
         });
         let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.fill(&finished_path, color_convert(style));
         });
         Ok(())
@@ -248,7 +242,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
         }
 
     let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let circ = Path::circle(
                 coord_to_point(center),
                 radius as f32
@@ -322,7 +316,7 @@ impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend
         t.size = font.get_size() as f32;
 
         let size = self.get_size();
-        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.fill_text(t.clone());
         });
         Ok(())
