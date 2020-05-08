@@ -1,19 +1,27 @@
-use js_sys::JSON;
-use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{window, CanvasRenderingContext2d, HtmlCanvasElement};
-
 use crate::drawing::backend::{BackendCoord, BackendStyle, DrawingBackend, DrawingErrorKind};
 use crate::style::text_anchor::{HPos, VPos};
 use crate::style::{Color, FontTransform, RGBAColor, TextStyle};
 
-use iced::canvas::{self, Canvas, Frame, Path, Stroke, Text};
+use iced::canvas::{self, Canvas, Frame, Path, Stroke, Text, Program};
+use iced::{Point, Size, VerticalAlignment, HorizontalAlignment};
+use iced_native::{layout, Widget, Clipboard};
+use iced_wgpu::Renderer;
+use iced_core::Length;
 
+use std::marker::PhantomData;
 /// The backend that is drawing on the HTML canvas
 /// TODO: Support double buffering
-pub struct IcedCanvasBackend {
-    canvas: Canvas,
-    cache: canvas::Cache
+pub struct IcedCanvasBackend<Message, W: Widget<Message, Renderer>> {
+    pub canvas: W,
+    pub cache: canvas::Cache,
+    pub phantom: PhantomData<Message>
 }
+
+// impl<Message, P: Program<Message>> IcedCanvasBackend<Message, P> {
+//     fn get_canvas_size<T: Widget<Message, Renderer>>(t: &T) -> (u32, u32) {
+//         (t.width() as u32, t.height() as u32)
+//     }
+// }
 
 pub struct IcedCanvasError(String);
 
@@ -29,63 +37,74 @@ impl std::fmt::Debug for IcedCanvasError {
     }
 }
 
-impl From<JsValue> for DrawingErrorKind<IcedCanvasError> {
-    fn from(e: JsValue) -> DrawingErrorKind<IcedCanvasError> {
-        DrawingErrorKind::DrawingError(IcedCanvasError(
-            JSON::stringify(&e)
-                .map(|s| Into::<String>::into(&s))
-                .unwrap_or_else(|_| "Unknown".to_string()),
-        ))
-    }
-}
+// impl From<JsValue> for DrawingErrorKind<IcedCanvasError> {
+//     fn from(e: JsValue) -> DrawingErrorKind<IcedCanvasError> {
+//         DrawingErrorKind::DrawingError(IcedCanvasError(
+//             JSON::stringify(&e)
+//                 .map(|s| Into::<String>::into(&s))
+//                 .unwrap_or_else(|_| "Unknown".to_string()),
+//         ))
+//     }
+// }
 
 impl std::error::Error for IcedCanvasError {}
 
-impl IcedCanvasBackend {
-    fn init_backend(canvas: Canvas, cache: canvas::Cache) -> Option<Self> {
-        Some(IcedCanvasBackend { canvas, cache })
+impl<Message, W: Widget<Message, Renderer>> IcedCanvasBackend<Message, W> {
+    fn init_backend(canvas: W, cache: canvas::Cache) -> Option<Self> {
+        Some(IcedCanvasBackend { canvas, cache, phantom: PhantomData })
     }
 
     /// Create a new drawing backend backed with an HTML5 canvas object with given Id
     /// - `elem_id` The element id for the canvas
     /// - Return either some drawing backend has been created, or none in error case
-    pub fn new(canvas: Canvas, cache: canvas::Cache) -> Option<Self> {;
+    pub fn new(canvas: W, cache: canvas::Cache) -> Option<Self> {;
         Self::init_backend(canvas, cache)
     }
 
     /// Create a new drawing backend backend with a HTML5 canvas object passed in
     /// - `canvas` The object we want to use as backend
     /// - Return either the drawing backend or None for error
-    pub fn with_canvas_object(canvas: Canvas, cache: canvas::Cache) -> Option<Self> {
+    pub fn with_canvas_object(canvas: W, cache: canvas::Cache) -> Option<Self> {
         Self::init_backend(canvas, cache)
     }
 }
 
-fn make_canvas_color(color: RGBAColor) -> JsValue {
-    let (r, g, b) = color.rgb();
-    let a = color.alpha();
-    format!("rgba({},{},{},{})", r, g, b, a).into()
-}
-
 fn coord_to_point(be: BackendCoord) -> Point {
-    Point { be.0 as f32, be.1 as f32}
+    Point { x: be.0 as f32, y: be.1 as f32}
 }
 
-fn color_convert(be: BackendStyle) -> Color {
+fn color_convert(be: &impl BackendStyle) -> iced::Color {
     let c = be.as_color();
     color_main(c)
 }
 
-fn color_main(c: RGBAColor) -> Color {
-    Color { c.0, c.1, c.2, c.3 }
+fn color_main(b: RGBAColor) -> iced::Color {
+    let rgb = b.rgb();
+    iced::Color { r: rgb.0 as f32, g: rgb.1 as f32, b: rgb.2 as f32, a: b.alpha() as f32}
 }
 
-impl DrawingBackend for IcedCanvasBackend {
+
+
+impl<Message, W: Widget<Message, Renderer>> DrawingBackend for IcedCanvasBackend<Message, W>
+{
     type ErrorType = IcedCanvasError;
 
     fn get_size(&self) -> (u32, u32) {
         // Getting just canvas.width gives poor results on HighDPI screens.
-        (self.canvas.width() as u32,  self.canvas.height() as u32)
+        // IcedCanvasBackend::get_canvas_size(&self.canvas)
+        let w = match self.canvas.width() {
+            Length::Fill => {panic!("can only handle fixed unit canvas sizes")},
+            Length::FillPortion(a) => {panic!("can only handle fixed unit canvas sizes")},
+            Length::Shrink => {panic!("can only handle fixed unit canvas sizes")},
+            Length::Units(a) => a,
+        };
+        let h = match self.canvas.width() {
+            Length::Fill => {panic!("can only handle fixed unit canvas sizes")},
+            Length::FillPortion(a) => {panic!("can only handle fixed unit canvas sizes")},
+            Length::Shrink => {panic!("can only handle fixed unit canvas sizes")},
+            Length::Units(a) => a,
+        };
+        (w as u32, h as u32)
     }
 
     fn ensure_prepared(&mut self) -> Result<(), DrawingErrorKind<IcedCanvasError>> {
@@ -104,10 +123,11 @@ impl DrawingBackend for IcedCanvasBackend {
         if style.alpha() == 0.0 {
             return Ok(());
         }
-        self.cache.draw(self.canvas.size(), |frame| {
+        let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let pixel = Path::rectangle(Point::new(point.0 as f32, point.1 as f32), Size::new(1.0, 1.0));
-            frame.fill(&pixel, Color { style.0, style.1, style.2, style.3 })
-        })
+            frame.fill(&pixel, color_main(style.clone()))
+        });
         Ok(())
     }
 
@@ -120,8 +140,9 @@ impl DrawingBackend for IcedCanvasBackend {
         if style.as_color().alpha() == 0.0 {
             return Ok(());
         }
-        self.cache.draw(self.canvas.size(), |frame| {
-            let line = Path::line(coord_to_point(from), coord_to_point(to))
+        let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+            let line = Path::line(coord_to_point(from), coord_to_point(to));
             frame.stroke(
                 &line,
                 Stroke {
@@ -129,7 +150,7 @@ impl DrawingBackend for IcedCanvasBackend {
                     color: color_convert(style),
                     ..Stroke::default()
                 })
-        })
+        });
         Ok(())
     }
 
@@ -143,7 +164,8 @@ impl DrawingBackend for IcedCanvasBackend {
         if style.as_color().alpha() == 0.0 {
             return Ok(());
         }
-        self.cache.draw(self.canvas.size(), |frame| {
+        let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let width = bottom_right.0 - upper_left.0;
             let height = bottom_right.1 - upper_left.1;
             let size = Size::new(width as f32, height as f32);
@@ -157,7 +179,7 @@ impl DrawingBackend for IcedCanvasBackend {
                     ..Stroke::default()
                 });
             }
-        })
+        });
         Ok(())
     }
 
@@ -172,13 +194,14 @@ impl DrawingBackend for IcedCanvasBackend {
         let mut pa = path.into_iter();
         let finished_path = Path::new(|pat| {
             if let Some(start) = pa.next() {
-                pat.move_to(Point{start.0 as f32, start.1 as f32});
-                for p in pa.iter() {
-                    pat.line_to(Point{p.0, p.1});
+                pat.move_to(Point::new(start.0 as f32, start.1 as f32));
+                for p in pa {
+                    pat.line_to(Point::new(p.0 as f32, p.1 as f32));
                 }
             }
         });
-        self.cache.draw(self.canvas.size(), |frame| {
+        let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.stroke(&finished_path, Stroke {
                 width: style.stroke_width() as f32,
                 color: color_convert(style),
@@ -199,14 +222,15 @@ impl DrawingBackend for IcedCanvasBackend {
         let mut pa = path.into_iter();
         let finished_path = Path::new(|pat| {
             if let Some(start) = pa.next() {
-                pat.move_to(Point{start.0 as f32, start.1 as f32});
-                for p in pa.iter() {
-                    pat.line_to(Point{p.0, p.1});
+                pat.move_to(Point::new(start.0 as f32, start.1 as f32));
+                for p in pa {
+                    pat.line_to(Point::new(p.0 as f32, p.1 as f32));
                 }
             }
             pat.close()
         });
-        self.cache.draw(self.canvas.size(), |frame| {
+        let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.fill(&finished_path, color_convert(style));
         });
         Ok(())
@@ -223,11 +247,12 @@ impl DrawingBackend for IcedCanvasBackend {
             return Ok(());
         }
 
-        self.cache.draw(self.canvas.size(), |frame| {
+    let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let circ = Path::circle(
-                center: coord_to_point(center),
-                radius: radius as f32
-            });
+                coord_to_point(center),
+                radius as f32
+            );
             if fill {
                 frame.fill(&circ, color_convert(style));
             } else {
@@ -286,7 +311,7 @@ impl DrawingBackend for IcedCanvasBackend {
         let mut t = Text::from(text);
         t.vertical_alignment = text_baseline;
         t.horizontal_alignment = text_align;
-        t.color = color_main(color);
+        t.color = color_main(color.clone());
         // external fonts probably dont work because bytes?
         // t.font = Font {
         //     Font::External {
@@ -296,8 +321,9 @@ impl DrawingBackend for IcedCanvasBackend {
         // }
         t.size = font.get_size() as f32;
 
-        self.cache.draw(self.canvas.size(), |frame| {
-            frame.fill_text(t)?;
+        let size = self.get_size();
+        self.cache.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+            frame.fill_text(t.clone());
         });
         Ok(())
     }
