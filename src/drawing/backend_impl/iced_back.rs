@@ -14,7 +14,8 @@ use std::marker::PhantomData;
 /// TODO: Support double buffering
 #[derive(Debug, Default, Clone)]
 pub struct IcedCanvasBackend {
-    pub canvas: canvas::Cache
+    pub canvas: canvas::Cache,
+    pub geom: Vec<canvas::Geometry>
 }
 
 // impl<Message, P: Program<Message>> IcedCanvasBackend<Message, P> {
@@ -51,7 +52,7 @@ impl std::error::Error for IcedCanvasError {}
 
 impl IcedCanvasBackend {
     fn init_backend(canvas: canvas::Cache) -> Option<Self> {
-        Some(IcedCanvasBackend { canvas })
+        Some(IcedCanvasBackend { canvas, geom: Vec::new()})
     }
 
     /// Create a new drawing backend backed with an HTML5 canvas object with given Id
@@ -119,10 +120,11 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let pixel = Path::rectangle(Point::new(point.0 as f32, point.1 as f32), Size::new(1.0, 1.0));
             frame.fill(&pixel, color_main(style.clone()))
         });
+        self.geom.push(a);
         Ok(())
     }
 
@@ -136,7 +138,7 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let line = Path::line(coord_to_point(from), coord_to_point(to));
             frame.stroke(
                 &line,
@@ -146,6 +148,7 @@ impl DrawingBackend for IcedCanvasBackend
                     ..Stroke::default()
                 })
         });
+        self.geom.push(a);
         Ok(())
     }
 
@@ -160,7 +163,7 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
         let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let width = bottom_right.0 - upper_left.0;
             let height = bottom_right.1 - upper_left.1;
             let size = Size::new(width as f32, height as f32);
@@ -175,6 +178,7 @@ impl DrawingBackend for IcedCanvasBackend
                 });
             }
         });
+        self.geom.push(a);
         Ok(())
     }
 
@@ -196,13 +200,14 @@ impl DrawingBackend for IcedCanvasBackend
             }
         });
         let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.stroke(&finished_path, Stroke {
                 width: style.stroke_width() as f32,
                 color: color_convert(style),
                 ..Stroke::default()
             });
         });
+        self.geom.push(a);
         Ok(())
     }
 
@@ -225,9 +230,10 @@ impl DrawingBackend for IcedCanvasBackend
             pat.close()
         });
         let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.fill(&finished_path, color_convert(style));
         });
+        self.geom.push(a);
         Ok(())
     }
 
@@ -242,8 +248,8 @@ impl DrawingBackend for IcedCanvasBackend
             return Ok(());
         }
 
-    let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let size = self.get_size();
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             let circ = Path::circle(
                 coord_to_point(center),
                 radius as f32
@@ -258,6 +264,7 @@ impl DrawingBackend for IcedCanvasBackend
                 });
             }
         });
+        self.geom.push(a);
         Ok(())
     }
 
@@ -317,9 +324,10 @@ impl DrawingBackend for IcedCanvasBackend
         t.size = font.get_size() as f32;
 
         let size = self.get_size();
-        self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
+        let a = self.canvas.draw(Size::new(size.0 as f32, size.1 as f32), |frame| {
             frame.fill_text(t.clone());
         });
+        self.geom.push(a);
         Ok(())
     }
 }
