@@ -42,22 +42,22 @@ impl From<JsValue> for DrawingErrorKind<IcedCanvasError> {
 impl std::error::Error for IcedCanvasError {}
 
 impl IcedCanvasBackend {
-    fn init_backend(canvas: Canvas) -> Option<Self> {
-        Some(IcedCanvasBackend { canvas })
+    fn init_backend(canvas: Canvas, cache: canvas::Cache) -> Option<Self> {
+        Some(IcedCanvasBackend { canvas, cache })
     }
 
     /// Create a new drawing backend backed with an HTML5 canvas object with given Id
     /// - `elem_id` The element id for the canvas
     /// - Return either some drawing backend has been created, or none in error case
-    pub fn new(canvas: Canvas) -> Option<Self> {;
-        Self::init_backend(canvas)
+    pub fn new(canvas: Canvas, cache: canvas::Cache) -> Option<Self> {;
+        Self::init_backend(canvas, cache)
     }
 
     /// Create a new drawing backend backend with a HTML5 canvas object passed in
     /// - `canvas` The object we want to use as backend
     /// - Return either the drawing backend or None for error
-    pub fn with_canvas_object(canvas: Canvas) -> Option<Self> {
-        Self::init_backend(canvas)
+    pub fn with_canvas_object(canvas: Canvas, cache: canvas::Cache) -> Option<Self> {
+        Self::init_backend(canvas, cache)
     }
 }
 
