@@ -28,6 +28,11 @@ mod piston;
 #[cfg(all(not(target_arch = "wasm32"), feature = "piston"))]
 pub use piston::{draw_piston_window, PistonBackend};
 
+#[cfg(all(not(target_arch = "wasm32"), feature = "iced_back"))]
+mod iced;
+#[cfg(all(not(target_arch = "wasm32"), feature = "iced_back"))]
+pub use iced::IcedCanvasBackend;
+
 #[cfg(all(not(target_arch = "wasm32"), feature = "cairo-rs"))]
 mod cairo;
 #[cfg(all(not(target_arch = "wasm32"), feature = "cairo-rs"))]
