@@ -11,7 +11,7 @@ use iced_core::Length;
 use std::marker::PhantomData;
 /// The backend that is drawing on the HTML canvas
 /// TODO: Support double buffering
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct IcedCanvasBackend {
     pub canvas: canvas::Cache
 }
