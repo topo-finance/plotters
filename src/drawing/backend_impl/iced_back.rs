@@ -95,6 +95,7 @@ impl DrawingBackend for IcedCanvasBackend
         // Getting just canvas.width gives poor results on HighDPI screens.
         // IcedCanvasBackend::get_canvas_size(&self.canvas)
         // let state = json!{format!("{:?}", self.canvas)};
+        println!("{:?}", self.bounds);
         (self.bounds.width as u32, self.bounds.height as u32)
         // (0,0)
     }
